@@ -62,25 +62,38 @@ drive.mount('/content/drive')
 !pip install -r requirements.txt
 ```
 
-### ステップ 5: 音声・動画ファイルのアップロード
+### ステップ 5 & 6: ファイルのアップロード＋実行
 
-Colab の左サイドバーにある **「ファイル」アイコン** から、
-処理したいファイルを `/content/` 以下にアップロードします。
+Colab の **セル 2** に以下を貼り付けて実行します。
+ファイル選択ダイアログが表示され、アップロード後にパスが自動取得されてそのまま処理が始まります。
 
 対応形式: `mp4` / `wav` / `mp3` / `m4a`
 
-### ステップ 6: 実行
-
-Colab の **セル 2** に以下を貼り付けて実行します。
-
 ```python
-# 設定
-INPUT_FILE = "/content/your_audio.mp4"  # アップロードしたファイルのパスに変更
-NUM_SPEAKERS = 0  # 0 = 自動推定、人数がわかる場合は数字を入力（例: 2）
+import os, subprocess, sys
+from google.colab import files
 
-# 実行
-import subprocess, sys
+# ---- ファイルをアップロード（ダイアログが開く） ----
+uploaded = files.upload()
+if not uploaded:
+    raise ValueError("ファイルがアップロードされませんでした。")
 
+# アップロードされたファイルのパスを自動取得
+filename = list(uploaded.keys())[0]
+INPUT_FILE = os.path.abspath(filename)  # /content/<filename> として解決される
+
+# 対応形式チェック
+supported = {".mp4", ".wav", ".mp3", ".m4a"}
+ext = os.path.splitext(filename)[1].lower()
+if ext not in supported:
+    raise ValueError(f"非対応の形式です: {ext}  対応形式: {supported}")
+
+print(f"入力ファイル: {INPUT_FILE}")
+
+# ---- 話者数の設定（0 = 自動推定） ----
+NUM_SPEAKERS = 0  # 人数がわかる場合は数字を入力（例: 2）
+
+# ---- 実行 ----
 cmd = [sys.executable, "run.py", INPUT_FILE]
 if NUM_SPEAKERS > 0:
     cmd += ["--speakers", str(NUM_SPEAKERS)]
