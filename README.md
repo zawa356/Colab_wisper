@@ -39,8 +39,9 @@ Google Colab（GPU）上で **WhisperX**（large-v3）と **pyannote.audio** を
 
 Colab の **セル 1** に以下を貼り付けて実行します。
 
-> **仕組み**: `whisperx` は `torch~=2.8.0` をメタデータにハードコードしており、
-> 通常の `pip install` では Colab の CUDA 最適化済み torch が必ず上書きされます。
+> **仕組み**: `whisperx` も `pyannote.audio` も torch/numpy/pandas をダウングレードする
+> 依存を持っています。両方を `--no-deps` で入れ、numpy/pandas は Colab 互換バージョンに
+> 固定することで Colab の CUDA 最適化済み torch（2.10.0+cu128）を守ります。
 > セル 1 は「初回のみインストール → 自動再起動 → 2回目以降はスキップ」という設計です。
 
 ```python
@@ -65,32 +66,40 @@ if TOOL_DIR not in sys.path:
 try:
     import whisperx
     import pyannote.audio
-    print("✓ whisperx / pyannote.audio はインストール済みです。再起動不要。")
+    print("✓ インストール済みです。次のセルに進んでください。")
 except ImportError:
-    print("パッケージをインストールします（数分かかります）...")
+    print("インストールします（10〜15分かかります）...")
 
-    # whisperx が torch をダウングレードするのを防ぐため
-    # --no-deps で本体だけ入れ、依存は手動管理する
+    # Step 1: 本体のみ --no-deps でインストール（torch/numpy/pandas を守る）
     os.system("pip install -q whisperx --no-deps")
+    os.system("pip install -q 'pyannote.audio>=3.1.0' --no-deps")
 
-    # faster-whisper / ctranslate2（torch 非依存）
-    os.system("pip install -q faster-whisper>=1.2.0 ctranslate2>=4.5.0 av>=11")
+    # Step 2: numpy/pandas を Colab 互換バージョンに固定
+    # （google-colab は pandas==2.2.2、numba は numpy<2.1 を要求）
+    os.system("pip install -q 'numpy==2.0.2' 'pandas==2.2.2'")
 
-    # 音声・NLP 系（torch 非依存）
-    os.system("pip install -q nltk omegaconf ffmpeg-python tqdm onnxruntime")
+    # Step 3: 音声処理系（torch 非依存）
+    os.system("pip install -q 'faster-whisper>=1.2.0' 'ctranslate2>=4.5.0' 'av>=11' onnxruntime ffmpeg-python")
 
-    # transformers / huggingface-hub（バージョン固定）
-    os.system('pip install -q "transformers>=4.48.0,<5.1" "huggingface-hub<1.0"')
+    # Step 4: NLP 系
+    os.system("pip install -q nltk omegaconf tqdm")
 
-    # pyannote.audio（torch は既存のものを使わせる）
-    os.system('pip install -q "pyannote.audio>=3.1.0"')
+    # Step 5: HuggingFace 系（バージョン固定）
+    os.system("pip install -q 'transformers>=4.48.0,<5.1' 'huggingface-hub<1.0'")
+
+    # Step 6: pyannote の依存パッケージ（torch 系は除外）
+    os.system("pip install -q asteroid-filterbanks pyannote-core pyannote-database pyannote-metrics pyannote-pipeline pyannoteai-sdk pytorch-metric-learning torch-audiomentations torchmetrics optuna colorlog")
+    os.system("pip install -q 'lightning>=2.4' lightning-utilities pytorch-lightning")
 
     print("\nインストール完了。ランタイムを再起動します...")
     os.kill(os.getpid(), 9)  # ← 初回のみここに到達して再起動
 ```
 
-> **再起動後の動作**: セル 1 を再実行しても `whisperx がインストール済み` と表示され、
+> **再起動後の動作**: セル 1 を再実行しても `インストール済み` と表示され、
 > `os.kill` には到達しません。そのままセル 2 に進んでください。
+>
+> **警告について**: `whisperx requires torch~=2.8.0` などの WARNING が出ますが、
+> 実際の動作には影響ありません（Colab の torch 2.10.0+cu128 で正常に動きます）。
 
 ### ステップ 4: ファイルのアップロード＋実行（セル 2）
 
