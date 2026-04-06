@@ -22,7 +22,7 @@ Colab のセルで以下を実行し、ドライブをマウントします。
 モデルのキャッシュをドライブに保存することで、セッション再起動後の再ダウンロードを防ぎます。
 
 ```python
-from google.drive import drive
+from google.colab import drive
 drive.mount('/content/drive')
 ```
 
