@@ -49,6 +49,10 @@ drive.mount('/content/drive')
 
 Colab の **セル 1** に以下を貼り付けて実行します。
 
+> **重要**: `whisperx` をそのまま `pip install` すると、Colab にプリインストールされている
+> CUDA 最適化済みの `torch` が古いバージョンに**ダウングレード**されてしまいます。
+> 以下のコマンドでは `--no-deps` を使ってダウングレードを防いでいます。
+
 ```python
 # ドライブマウント
 from google.colab import drive
@@ -58,9 +62,30 @@ drive.mount('/content/drive')
 !git clone https://github.com/zawa356/Colab_wisper.git /content/whisper_tool
 %cd /content/whisper_tool
 
-# 依存パッケージをインストール
-!pip install -r requirements.txt
+# ① whisperx 本体を torch 上書きなしでインストール
+!pip install whisperx --no-deps
+
+# ② whisperx の依存パッケージ（torch 系・numpy・pandas は除外して Colab のものを使う）
+!pip install \
+    faster-whisper>=1.2.0 \
+    ctranslate2>=4.5.0 \
+    nltk>=3.9.1 \
+    omegaconf>=2.3.0 \
+    "transformers>=4.48.0,<5.0" \
+    "huggingface-hub<1.0.0" \
+    ffmpeg-python \
+    tqdm
+
+# ③ pyannote.audio（torch は既存のものを使う）
+!pip install "pyannote.audio>=3.1.0"
+
+# ④ インストール後にランタイムを再起動（必須）
+import os
+os.kill(os.getpid(), 9)
 ```
+
+> セル実行後にランタイムが自動的に再起動されます。**再起動後はセル 1 の先頭から再実行不要です。**
+> 次のセル（セル 2）から続けて実行してください。
 
 ### ステップ 5 & 6: ファイルのアップロード＋実行
 

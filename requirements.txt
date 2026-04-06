@@ -1,17 +1,26 @@
 # WhisperX + pyannote.audio 依存パッケージ
 # Google Colab (GPU: T4) 向け
+#
+# 注意: torch / torchvision / torchaudio / numpy / pandas は
+# Colab にプリインストール済みのため、ここでは指定しない。
+# セル1のインストール手順に従って pip install してください。
 
-# 音声処理・文字起こし
+# 音声処理（Colab の torch を上書きしないよう --no-deps で別途インストール）
 whisperx
+faster-whisper>=1.2.0
+ctranslate2>=4.5.0
+
+# 話者分離
 pyannote.audio>=3.1.0
 
-# 音声ファイル操作
-pydub
-ffmpeg-python
+# WhisperX の依存（torch 系を除く）
+nltk>=3.9.1
+omegaconf>=2.3.0
+transformers>=4.48.0
+huggingface-hub
 
-# データ処理
-numpy
-pandas
+# 音声ファイル操作
+ffmpeg-python
 
 # その他ユーティリティ
 tqdm
