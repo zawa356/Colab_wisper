@@ -6,7 +6,7 @@ Google Colab（GPU）上で **WhisperX**（large-v3）と **pyannote.audio** を
 ## 出力形式
 
 | 形式 | 内容 |
-|------|------|
+| ---- | ---- |
 | `.txt` | シンプルなテキスト（タイムスタンプ・話者名付き） |
 | `.json` | タイムスタンプ・話者・単語情報をすべて含む構造化データ |
 | `.srt` | 動画プレイヤー向け字幕ファイル |
@@ -55,14 +55,12 @@ from google.colab import drive
 drive.mount('/content/drive')
 
 # リポジトリをクローン
-!git clone https://github.com/your-username/your-repo-name.git /content/whisper_tool
+!git clone https://github.com/zawa356/Colab_wisper.git /content/whisper_tool
 %cd /content/whisper_tool
 
 # 依存パッケージをインストール
 !pip install -r requirements.txt
 ```
-
-> `your-username/your-repo-name` は実際のリポジトリ名に変更してください。
 
 ### ステップ 5: 音声・動画ファイルのアップロード
 
@@ -93,7 +91,7 @@ subprocess.run(cmd, check=True)
 #### `NUM_SPEAKERS` の設定方法
 
 | 値 | 動作 |
-|----|------|
+| -- | ---- |
 | `0` | pyannote が話者数を自動推定（デフォルト） |
 | `2` | 2 人として固定（精度が上がる場合あり） |
 | `3` | 3 人として固定 |
@@ -102,7 +100,7 @@ subprocess.run(cmd, check=True)
 
 処理が完了すると、以下の 4 ファイルが自動的にダウンロードされます。
 
-```
+```text
 your_audio.txt
 your_audio.json
 your_audio.srt
@@ -121,7 +119,7 @@ python run.py <input_file> [--speakers N] [--output_dir DIR] [--model MODEL] [--
 ```
 
 | 引数 | デフォルト | 説明 |
-|------|-----------|------|
+| ---- | --------- | ---- |
 | `--speakers` | 自動 | 話者数を固定指定 |
 | `--output_dir` | `/content/output` | 出力先ディレクトリ |
 | `--model` | `large-v3` | Whisper モデルサイズ |
