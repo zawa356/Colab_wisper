@@ -95,8 +95,14 @@ Colab の **セル 2** に以下を貼り付けて実行します。
 対応形式: `mp4` / `wav` / `mp3` / `m4a`
 
 ```python
-import os, subprocess, sys
+import os, sys
 from google.colab import files
+
+# ランタイム再起動後もスクリプトのディレクトリを確実に参照する
+TOOL_DIR = "/content/whisper_tool"
+os.chdir(TOOL_DIR)
+if TOOL_DIR not in sys.path:
+    sys.path.insert(0, TOOL_DIR)
 
 # ---- ファイルをアップロード（ダイアログが開く） ----
 uploaded = files.upload()
@@ -105,7 +111,7 @@ if not uploaded:
 
 # アップロードされたファイルのパスを自動取得
 filename = list(uploaded.keys())[0]
-INPUT_FILE = os.path.abspath(filename)  # /content/<filename> として解決される
+INPUT_FILE = os.path.abspath(filename)
 
 # 対応形式チェック
 supported = {".mp4", ".wav", ".mp3", ".m4a"}
@@ -118,12 +124,16 @@ print(f"入力ファイル: {INPUT_FILE}")
 # ---- 話者数の設定（0 = 自動推定） ----
 NUM_SPEAKERS = 0  # 人数がわかる場合は数字を入力（例: 2）
 
-# ---- 実行 ----
-cmd = [sys.executable, "run.py", INPUT_FILE]
-if NUM_SPEAKERS > 0:
-    cmd += ["--speakers", str(NUM_SPEAKERS)]
+# ---- 実行（import で直接呼び出し、エラーがそのまま表示される） ----
+import importlib, run as _run
+importlib.reload(_run)  # 再起動後のキャッシュをクリア
 
-subprocess.run(cmd, check=True)
+# sys.argv を差し替えて argparse に渡す
+sys.argv = ["/content/whisper_tool/run.py", INPUT_FILE]
+if NUM_SPEAKERS > 0:
+    sys.argv += ["--speakers", str(NUM_SPEAKERS)]
+
+_run.main()
 ```
 
 #### `NUM_SPEAKERS` の設定方法
