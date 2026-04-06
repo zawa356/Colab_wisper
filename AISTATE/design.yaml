@@ -1,0 +1,60 @@
+---
+# AISTATE/design.yaml
+# AI専用: 設計思想・アーキテクチャ方針の記録
+# 人間が読む必要はない。AIがトークンを節約するためのコンテキスト保持用。
+
+meta:
+  created_at: "2026-04-06"
+  version: "1.0.0"
+  purpose: "AI-internal context retention for design decisions"
+
+project:
+  name: "Colab_whisperX"
+  goal: "Google Colab (GPU: T4) でWhisperX+pyannoteを使った文字起こし+話者分離"
+  target_env: "Google Colab, Python 3.10+, CUDA (T4)"
+  public_repo: true  # HFトークン等の機密情報は絶対にコードに書かない
+
+architecture:
+  entry_point: "run.py"
+  modules:
+    transcribe:
+      file: "utils/transcribe.py"
+      responsibility: "WhisperX推論 + アライメント処理"
+      key_decisions:
+        - "アライメント失敗時はフォールバックして元セグメントを返す"
+        - "推論後にGPUメモリをgc+torch.cuda.empty_cache()で解放"
+        - "compute_type=float16 でT4向け最適化"
+    diarize:
+      file: "utils/diarize.py"
+      responsibility: "pyannote話者分離 + WhisperXセグメントへのラベル付与"
+      key_decisions:
+        - "num_speakers=None の場合はpyannoteの自動推定を使う"
+        - "assign_word_speakers失敗時はSPEAKER_UNKNOWNでフォールバック"
+        - "HFトークンはrun.py経由で渡す（モジュール内では取得しない）"
+    export:
+      file: "utils/export.py"
+      responsibility: "TXT/JSON/SRT/Markdown の4形式出力"
+      key_decisions:
+        - "各形式の出力失敗は警告に留め、他形式の出力を継続する"
+        - "SRT形式はhh:mm:ss,mmm（ミリ秒はカンマ区切り）"
+        - "Markdownは話者切り替わり時のみ見出しを挿入（連続する同話者はまとめる）"
+
+secrets:
+  hf_token:
+    source_colab: "google.colab.userdata.get('HF_TOKEN')"
+    source_other: "os.environ['HF_TOKEN']"
+    never_hardcode: true
+
+cache:
+  hf_cache_dir: "/content/drive/MyDrive/hf_cache"
+  env_var: "HF_HOME"
+  purpose: "セッション切れ後の再ダウンロードを防ぐ"
+
+audio_pipeline:
+  conversion: "ffmpeg -ar 16000 -ac 1 -c:a pcm_s16le"
+  reason: "WhisperXとpyannoteはどちらも16kHzモノラルWAVを推奨"
+
+output:
+  auto_download: "google.colab.files.download() (Colabのみ)"
+  formats: ["txt", "json", "srt", "md"]
+  default_output_dir: "/content/output"

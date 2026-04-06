@@ -1,0 +1,37 @@
+{
+  "_comment": "AISTATE/history.json - AI専用変更履歴。人間が読む必要はない。",
+  "schema_version": "1.0",
+  "entries": [
+    {
+      "id": 1,
+      "timestamp": "2026-04-06T00:00:00Z",
+      "type": "init",
+      "summary": "リポジトリ初期構築",
+      "files_created": [
+        "README.md",
+        "requirements.txt",
+        "run.py",
+        "utils/__init__.py",
+        "utils/transcribe.py",
+        "utils/diarize.py",
+        "utils/export.py",
+        "AISTATE/design.yaml",
+        "AISTATE/history.json"
+      ],
+      "key_decisions": [
+        "HFトークンはColab Secretsから取得。コードに直書き禁止。",
+        "音声変換はffmpegで16kHzモノラルWAVに統一。",
+        "話者数はrun.pyの--speakers引数で制御。省略時はpyannote自動推定。",
+        "出力は4形式（txt/json/srt/md）を全て生成。",
+        "HF_HOMEをGoogleドライブのhf_cacheに設定してモデルキャッシュ。",
+        "各モジュールはエラー時にフォールバックして処理を継続する設計。",
+        "コメントは全て日本語で記述。"
+      ],
+      "constraints": [
+        "PublicリポジトリのためHFトークン等の機密情報は絶対にコードに含めない",
+        "Google Colab T4 GPU環境を主ターゲットとする",
+        "Python 3.10+ の型ヒント構文を使用"
+      ]
+    }
+  ]
+}
