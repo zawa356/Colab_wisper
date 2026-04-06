@@ -49,43 +49,58 @@ drive.mount('/content/drive')
 
 Colab の **セル 1** に以下を貼り付けて実行します。
 
-> **重要**: `whisperx` をそのまま `pip install` すると、Colab にプリインストールされている
-> CUDA 最適化済みの `torch` が古いバージョンに**ダウングレード**されてしまいます。
-> 以下のコマンドでは `--no-deps` を使ってダウングレードを防いでいます。
+> **仕組み**: `whisperx` は `torch~=2.8.0` をメタデータにハードコードしており、
+> 通常の `pip install` では Colab の CUDA 最適化済み torch が必ず上書きされます。
+> セル 1 は「初回のみインストール → 自動再起動 → 2回目以降はスキップ」という設計です。
 
 ```python
-# ドライブマウント
+import os, sys
+
+# ---- ドライブマウント ----
 from google.colab import drive
 drive.mount('/content/drive')
 
-# リポジトリをクローン
-!git clone https://github.com/zawa356/Colab_wisper.git /content/whisper_tool
-%cd /content/whisper_tool
+# ---- リポジトリをクローン（既にあればスキップ） ----
+TOOL_DIR = "/content/whisper_tool"
+if not os.path.exists(TOOL_DIR):
+    os.system(f"git clone https://github.com/zawa356/Colab_wisper.git {TOOL_DIR}")
+else:
+    print(f"{TOOL_DIR} は既に存在します。クローンをスキップします。")
 
-# ① whisperx 本体を torch 上書きなしでインストール
-!pip install whisperx --no-deps
+os.chdir(TOOL_DIR)
+if TOOL_DIR not in sys.path:
+    sys.path.insert(0, TOOL_DIR)
 
-# ② whisperx の依存パッケージ（torch 系・numpy・pandas は除外して Colab のものを使う）
-!pip install \
-    faster-whisper>=1.2.0 \
-    ctranslate2>=4.5.0 \
-    nltk>=3.9.1 \
-    omegaconf>=2.3.0 \
-    "transformers>=4.48.0,<5.0" \
-    "huggingface-hub<1.0.0" \
-    ffmpeg-python \
-    tqdm
+# ---- インストール（初回のみ） ----
+try:
+    import whisperx
+    import pyannote.audio
+    print("✓ whisperx / pyannote.audio はインストール済みです。再起動不要。")
+except ImportError:
+    print("パッケージをインストールします（数分かかります）...")
 
-# ③ pyannote.audio（torch は既存のものを使う）
-!pip install "pyannote.audio>=3.1.0"
+    # whisperx が torch をダウングレードするのを防ぐため
+    # --no-deps で本体だけ入れ、依存は手動管理する
+    os.system("pip install -q whisperx --no-deps")
 
-# ④ インストール後にランタイムを再起動（必須）
-import os
-os.kill(os.getpid(), 9)
+    # faster-whisper / ctranslate2（torch 非依存）
+    os.system("pip install -q faster-whisper>=1.2.0 ctranslate2>=4.5.0 av>=11")
+
+    # 音声・NLP 系（torch 非依存）
+    os.system("pip install -q nltk omegaconf ffmpeg-python tqdm onnxruntime")
+
+    # transformers / huggingface-hub（バージョン固定）
+    os.system('pip install -q "transformers>=4.48.0,<5.1" "huggingface-hub<1.0"')
+
+    # pyannote.audio（torch は既存のものを使わせる）
+    os.system('pip install -q "pyannote.audio>=3.1.0"')
+
+    print("\nインストール完了。ランタイムを再起動します...")
+    os.kill(os.getpid(), 9)  # ← 初回のみここに到達して再起動
 ```
 
-> セル実行後にランタイムが自動的に再起動されます。**再起動後はセル 1 の先頭から再実行不要です。**
-> 次のセル（セル 2）から続けて実行してください。
+> **再起動後の動作**: セル 1 を再実行しても `whisperx がインストール済み` と表示され、
+> `os.kill` には到達しません。そのままセル 2 に進んでください。
 
 ### ステップ 5 & 6: ファイルのアップロード＋実行
 
