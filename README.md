@@ -39,11 +39,6 @@ Google Colab（GPU）上で **WhisperX**（large-v3）と **pyannote.audio** を
 
 Colab の **セル 1** に以下を貼り付けて実行します。
 
-> **仕組み**: `whisperx` も `pyannote.audio` も torch/numpy/pandas をダウングレードする
-> 依存を持っています。両方を `--no-deps` で入れ、numpy/pandas は Colab 互換バージョンに
-> 固定することで Colab の CUDA 最適化済み torch（2.10.0+cu128）を守ります。
-> セル 1 は「初回のみインストール → 自動再起動 → 2回目以降はスキップ」という設計です。
-
 ```python
 import os, sys
 
@@ -62,44 +57,22 @@ os.chdir(TOOL_DIR)
 if TOOL_DIR not in sys.path:
     sys.path.insert(0, TOOL_DIR)
 
-# ---- インストール（初回のみ） ----
-try:
-    import whisperx
-    import pyannote.audio
-    print("✓ インストール済みです。次のセルに進んでください。")
-except ImportError:
-    print("インストールします（10〜15分かかります）...")
-
-    # Step 1: 本体のみ --no-deps でインストール（torch/numpy/pandas を守る）
-    os.system("pip install -q whisperx --no-deps")
-    os.system("pip install -q 'pyannote.audio>=3.1.0' --no-deps")
-
-    # Step 2: numpy/pandas を Colab 互換バージョンに固定
-    # （google-colab は pandas==2.2.2、numba は numpy<2.1 を要求）
-    os.system("pip install -q 'numpy==2.0.2' 'pandas==2.2.2'")
-
-    # Step 3: 音声処理系（torch 非依存）
-    os.system("pip install -q 'faster-whisper>=1.2.0' 'ctranslate2>=4.5.0' 'av>=11' onnxruntime ffmpeg-python")
-
-    # Step 4: NLP 系
-    os.system("pip install -q nltk omegaconf tqdm")
-
-    # Step 5: HuggingFace 系（バージョン固定）
-    os.system("pip install -q 'transformers>=4.48.0,<5.1' 'huggingface-hub<1.0'")
-
-    # Step 6: pyannote の依存パッケージ（torch 系は除外）
-    os.system("pip install -q asteroid-filterbanks pyannote-core pyannote-database pyannote-metrics pyannote-pipeline pyannoteai-sdk pytorch-metric-learning torch-audiomentations torchmetrics optuna colorlog")
-    os.system("pip install -q 'lightning>=2.4' lightning-utilities pytorch-lightning")
-
-    print("\nインストール完了。ランタイムを再起動します...")
-    os.kill(os.getpid(), 9)  # ← 初回のみここに到達して再起動
+# ---- インストール ----
+print("パッケージをインストールします（5〜10分かかります）...")
+os.system("pip install -q -r requirements.txt")
+print("\n✓ インストール完了。")
+print("=" * 50)
+print("【必須】上のメニューから")
+print("  「ランタイム」→「ランタイムを再起動」")
+print("を実行してください。その後セル 2 に進みます。")
+print("=" * 50)
 ```
 
-> **再起動後の動作**: セル 1 を再実行しても `インストール済み` と表示され、
-> `os.kill` には到達しません。そのままセル 2 に進んでください。
+> **インストール後の手動再起動が必要です。**
+> `ランタイム → ランタイムを再起動` を実行してからセル 2 に進んでください。
 >
-> **警告について**: `whisperx requires torch~=2.8.0` などの WARNING が出ますが、
-> 実際の動作には影響ありません（Colab の torch 2.10.0+cu128 で正常に動きます）。
+> **WARNING が多数出ますが無視して問題ありません。**
+> `whisperx requires torch~=2.8.0` などは機能に影響しない互換性警告です。
 
 ### ステップ 4: ファイルのアップロード＋実行（セル 2）
 
