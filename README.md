@@ -74,16 +74,15 @@ print("=" * 50)
 > **WARNING が多数出ますが無視して問題ありません。**
 > `whisperx requires torch~=2.8.0` などは機能に影響しない互換性警告です。
 
-### ステップ 4: ファイルのアップロード＋実行（セル 2）
+### ステップ 4: ファイルパス指定＋実行（セル 2）
 
 Colab の **セル 2** に以下を貼り付けて実行します。
-ファイル選択ダイアログが表示され、アップロード後にパスが自動取得されてそのまま処理が始まります。
+セル1でマウントした Google ドライブ上のファイルパスを直接指定します。
 
 対応形式: `mp4` / `wav` / `mp3` / `m4a`
 
 ```python
 import os, sys
-from google.colab import files
 
 # ランタイム再起動後もスクリプトのディレクトリを確実に参照する
 TOOL_DIR = "/content/whisper_tool"
@@ -91,31 +90,31 @@ os.chdir(TOOL_DIR)
 if TOOL_DIR not in sys.path:
     sys.path.insert(0, TOOL_DIR)
 
-# ---- ファイルをアップロード（ダイアログが開く） ----
-uploaded = files.upload()
-if not uploaded:
-    raise ValueError("ファイルがアップロードされませんでした。")
+# ================================================================
+# ★ここを編集★ Google ドライブ上のファイルパスを指定する
+# マイドライブ直下の場合: /content/drive/MyDrive/ファイル名.mp4
+# フォルダがある場合:    /content/drive/MyDrive/フォルダ名/ファイル名.mp4
+INPUT_FILE = "/content/drive/MyDrive/your_audio.mp4"
 
-# アップロードされたファイルのパスを自動取得
-filename = list(uploaded.keys())[0]
-INPUT_FILE = os.path.abspath(filename)
+# ★ここを編集★ 話者数（0 = 自動推定、人数が分かる場合は数字を入力）
+NUM_SPEAKERS = 0
+# ================================================================
 
-# 対応形式チェック
+# 入力ファイルの存在・形式チェック
+if not os.path.exists(INPUT_FILE):
+    raise FileNotFoundError(f"ファイルが見つかりません: {INPUT_FILE}\nGoogle ドライブのパスを確認してください。")
+
 supported = {".mp4", ".wav", ".mp3", ".m4a"}
-ext = os.path.splitext(filename)[1].lower()
+ext = os.path.splitext(INPUT_FILE)[1].lower()
 if ext not in supported:
     raise ValueError(f"非対応の形式です: {ext}  対応形式: {supported}")
 
 print(f"入力ファイル: {INPUT_FILE}")
 
-# ---- 話者数の設定（0 = 自動推定） ----
-NUM_SPEAKERS = 0  # 人数がわかる場合は数字を入力（例: 2）
-
 # ---- 実行（import で直接呼び出し、エラーがそのまま表示される） ----
 import importlib, run as _run
-importlib.reload(_run)  # 再起動後のキャッシュをクリア
+importlib.reload(_run)
 
-# sys.argv を差し替えて argparse に渡す
 sys.argv = ["/content/whisper_tool/run.py", INPUT_FILE]
 if NUM_SPEAKERS > 0:
     sys.argv += ["--speakers", str(NUM_SPEAKERS)]
