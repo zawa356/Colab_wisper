@@ -51,25 +51,33 @@ TOOL_DIR = "/content/whisper_tool"
 if not os.path.exists(TOOL_DIR):
     os.system(f"git clone https://github.com/zawa356/Colab_wisper.git {TOOL_DIR}")
 else:
-    print(f"{TOOL_DIR} は既に存在します。クローンをスキップします。")
+    # 既にある場合は最新コードを取得
+    os.system(f"cd {TOOL_DIR} && git pull")
 
 os.chdir(TOOL_DIR)
 if TOOL_DIR not in sys.path:
     sys.path.insert(0, TOOL_DIR)
 
-# ---- インストール ----
-print("パッケージをインストールします（5〜10分かかります）...")
-os.system("pip install -q -r requirements.txt")
-print("\n✓ インストール完了。")
-print("=" * 50)
-print("【必須】上のメニューから")
-print("  「ランタイム」→「ランタイムを再起動」")
-print("を実行してください。その後セル 2 に進みます。")
-print("=" * 50)
+# ---- インストール（初回のみ。2回目以降はスキップ） ----
+# インストール済みフラグファイルで管理する
+FLAG = "/tmp/whisperx_installed"
+if os.path.exists(FLAG):
+    print("✓ インストール済みです。セル 2 に進んでください。")
+else:
+    print("パッケージをインストールします（5〜10分かかります）...")
+    ret = os.system("pip install -r requirements.txt")
+    if ret != 0:
+        raise RuntimeError("pip install に失敗しました。上のログを確認してください。")
+    open(FLAG, "w").close()  # フラグを立てる
+    print("\n✓ インストール完了。ランタイムを再起動します...")
+    os.kill(os.getpid(), 9)  # 再起動（フラグがあるので次回は再起動しない）
 ```
 
-> **インストール後の手動再起動が必要です。**
-> `ランタイム → ランタイムを再起動` を実行してからセル 2 に進んでください。
+> **仕組み**: `/tmp/whisperx_installed` というファイルをフラグとして使います。
+>
+> - **初回**: インストール → 自動再起動（フラグが残る）
+> - **再起動後**: フラグあり → スキップしてセル 2 へ
+> - **新しいセッション**: `/tmp` がリセットされるので自動的に再インストール
 >
 > **WARNING が多数出ますが無視して問題ありません。**
 > `whisperx requires torch~=2.8.0` などは機能に影響しない互換性警告です。

@@ -1,9 +1,10 @@
 # WhisperX + pyannote.audio 依存パッケージ
 # Google Colab (GPU: T4) 向け
-
+#
+# transformers 5.x では Pipeline がトップレベルから削除され whisperx が壊れるため上限を指定
+# requirements.txt ではクォート不要（シングル/ダブルクォートは使わない）
 whisperx
 pyannote.audio>=3.1.0
-# transformers 5.x で Pipeline がトップレベルから削除され whisperx が壊れるため固定
-"transformers>=4.48.0,<5.0"
+transformers>=4.48.0,<5.0
 ffmpeg-python
 tqdm
