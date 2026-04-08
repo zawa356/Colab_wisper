@@ -47,7 +47,14 @@ def diarize_audio(
     # -------------------------------------------------------------------
     print("[情報] pyannote.audio パイプラインをロード中...")
     try:
-        diarize_model = whisperx.DiarizationPipeline(
+        # whisperx 3.x では DiarizationPipeline はサブモジュールにある
+        try:
+            from whisperx.diarize import DiarizationPipeline
+        except ImportError:
+            # フォールバック: whisperx のバージョンによってはトップレベルにある
+            DiarizationPipeline = whisperx.DiarizationPipeline
+
+        diarize_model = DiarizationPipeline(
             use_auth_token=hf_token,
             device="cuda",
         )
