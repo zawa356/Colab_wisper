@@ -1,8 +1,9 @@
 # WhisperX + pyannote.audio 依存パッケージ
 # Google Colab (GPU: T4) 向け
-# pip install -r requirements.txt で一括インストール
 
 whisperx
 pyannote.audio>=3.1.0
+# transformers 5.x で Pipeline がトップレベルから削除され whisperx が壊れるため固定
+"transformers>=4.48.0,<5.0"
 ffmpeg-python
 tqdm
