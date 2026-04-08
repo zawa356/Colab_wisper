@@ -54,10 +54,17 @@ def diarize_audio(
             # フォールバック: whisperx のバージョンによってはトップレベルにある
             DiarizationPipeline = whisperx.DiarizationPipeline
 
-        diarize_model = DiarizationPipeline(
-            use_auth_token=hf_token,
-            device="cuda",
-        )
+        # 新しい HuggingFace API は use_auth_token → token に変更された
+        try:
+            diarize_model = DiarizationPipeline(
+                use_auth_token=hf_token,
+                device="cuda",
+            )
+        except TypeError:
+            diarize_model = DiarizationPipeline(
+                token=hf_token,
+                device="cuda",
+            )
     except Exception as e:
         print(f"[エラー] 話者分離パイプラインのロードに失敗しました: {e}")
         print("[ヒント] HuggingFace の利用規約に同意しているか確認してください。")
