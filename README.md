@@ -74,15 +74,17 @@ print("=" * 50)
 > **WARNING が多数出ますが無視して問題ありません。**
 > `whisperx requires torch~=2.8.0` などは機能に影響しない互換性警告です。
 
-### ステップ 4: ファイルパス指定＋実行（セル 2）
+### ステップ 4: ファイル選択＋実行（セル 2）
 
 Colab の **セル 2** に以下を貼り付けて実行します。
-セル1でマウントした Google ドライブ上のファイルパスを直接指定します。
+Google ドライブ内の対応ファイルをドロップダウンで選択し「▶ 実行」ボタンを押すだけです。
 
 対応形式: `mp4` / `wav` / `mp3` / `m4a`
 
 ```python
-import os, sys
+import os, sys, importlib
+import ipywidgets as widgets
+from IPython.display import display
 
 # ランタイム再起動後もスクリプトのディレクトリを確実に参照する
 TOOL_DIR = "/content/whisper_tool"
@@ -91,44 +93,77 @@ if TOOL_DIR not in sys.path:
     sys.path.insert(0, TOOL_DIR)
 
 # ================================================================
-# ★ここを編集★ Google ドライブ上のファイルパスを指定する
-# マイドライブ直下の場合: /content/drive/MyDrive/ファイル名.mp4
-# フォルダがある場合:    /content/drive/MyDrive/フォルダ名/ファイル名.mp4
-INPUT_FILE = "/content/drive/MyDrive/your_audio.mp4"
-
-# ★ここを編集★ 話者数（0 = 自動推定、人数が分かる場合は数字を入力）
-NUM_SPEAKERS = 0
+# ★ここを編集★ 検索するドライブのフォルダ（省略するとマイドライブ全体）
+SEARCH_DIR = "/content/drive/MyDrive"
 # ================================================================
 
-# 入力ファイルの存在・形式チェック
-if not os.path.exists(INPUT_FILE):
-    raise FileNotFoundError(f"ファイルが見つかりません: {INPUT_FILE}\nGoogle ドライブのパスを確認してください。")
+SUPPORTED = {".mp4", ".wav", ".mp3", ".m4a"}
 
-supported = {".mp4", ".wav", ".mp3", ".m4a"}
-ext = os.path.splitext(INPUT_FILE)[1].lower()
-if ext not in supported:
-    raise ValueError(f"非対応の形式です: {ext}  対応形式: {supported}")
+# ---- ドライブ内の対応ファイルを検索 ----
+print(f"検索中: {SEARCH_DIR}")
+found = []
+for root, dirs, files in os.walk(SEARCH_DIR):
+    dirs[:] = [d for d in dirs if not d.startswith('.')]  # 隠しフォルダをスキップ
+    for f in files:
+        if os.path.splitext(f)[1].lower() in SUPPORTED:
+            full = os.path.join(root, f)
+            label = full.replace(SEARCH_DIR + "/", "")  # 表示を短縮
+            found.append((label, full))
 
-print(f"入力ファイル: {INPUT_FILE}")
+if not found:
+    print(f"対応ファイルが見つかりません（{SEARCH_DIR}）")
+else:
+    found.sort()
+    print(f"{len(found)} 件見つかりました。")
 
-# ---- 実行（import で直接呼び出し、エラーがそのまま表示される） ----
-import importlib, run as _run
-importlib.reload(_run)
+    # ---- ウィジェット ----
+    file_picker = widgets.Dropdown(
+        options=found,
+        description="ファイル:",
+        layout=widgets.Layout(width="90%"),
+        style={"description_width": "80px"},
+    )
+    speaker_slider = widgets.IntSlider(
+        value=0, min=0, max=10, step=1,
+        description="話者数:",
+        style={"description_width": "80px"},
+    )
+    speaker_label = widgets.Label("← 0 = 自動推定")
+    run_btn = widgets.Button(
+        description="▶ 実行",
+        button_style="success",
+        layout=widgets.Layout(width="120px", margin="10px 0 0 0"),
+    )
+    out = widgets.Output()
 
-sys.argv = ["/content/whisper_tool/run.py", INPUT_FILE]
-if NUM_SPEAKERS > 0:
-    sys.argv += ["--speakers", str(NUM_SPEAKERS)]
+    def on_run(_):
+        with out:
+            out.clear_output()
+            INPUT_FILE = file_picker.value
+            NUM_SPEAKERS = speaker_slider.value
 
-_run.main()
+            print(f"入力ファイル: {INPUT_FILE}")
+
+            import run as _run
+            importlib.reload(_run)
+
+            sys.argv = ["/content/whisper_tool/run.py", INPUT_FILE]
+            if NUM_SPEAKERS > 0:
+                sys.argv += ["--speakers", str(NUM_SPEAKERS)]
+
+            _run.main()
+
+    run_btn.on_click(on_run)
+
+    display(widgets.VBox([
+        file_picker,
+        widgets.HBox([speaker_slider, speaker_label]),
+        run_btn,
+        out,
+    ]))
 ```
 
-#### `NUM_SPEAKERS` の設定方法
-
-| 値 | 動作 |
-| -- | ---- |
-| `0` | pyannote が話者数を自動推定（デフォルト） |
-| `2` | 2 人として固定（精度が上がる場合あり） |
-| `3` | 3 人として固定 |
+> **話者数スライダー**: 0 = pyannote が自動推定。人数が分かる場合は数字を指定すると精度が上がります。
 
 ### ステップ 5: 出力ファイルの確認・ダウンロード
 
